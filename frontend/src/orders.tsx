@@ -2,8 +2,8 @@ import {useEffect,useState} from 'react'
 import {api} from './api'
 import {currency} from './cart'
 
-const labels = {PENDING:'Chờ xử lý',CONFIRMED:'Đã xác nhận',SHIPPING:'Đang giao',COMPLETED:'Hoàn tất',CANCELLED:'Đã hủy'}
-const statusColors:Record<string,string> = {PENDING:'status-pending',CONFIRMED:'status-confirmed',SHIPPING:'status-shipping',COMPLETED:'status-completed',CANCELLED:'status-cancelled'}
+const labels = {PENDING:'Chờ xử lý',CONFIRMED:'Đã xác nhận',SHIPPING:'Đang giao',COMPLETED:'Hoàn tất',CANCELLED:'Đã hủy',REJECTED:'Đã từ chối'}
+const statusColors:Record<string,string> = {PENDING:'status-pending',CONFIRMED:'status-confirmed',SHIPPING:'status-shipping',COMPLETED:'status-completed',CANCELLED:'status-cancelled',REJECTED:'status-cancelled'}
 type Status = keyof typeof labels
 type Summary = {orderId:number;status:Status;placedAt:string;address:string;customer:string;handler:string|null;total:number}
 type Detail = Summary & {items:{productId:number;name:string;quantity:number;price:number}[];
@@ -39,6 +39,7 @@ export function Orders({staff}:{staff:boolean}) {
   async function change(target:Status) {
     if(!detail)return
     if(target==='CANCELLED'&&!window.confirm('Hủy đơn #'+detail.orderId+'?'))return
+    if(target==='REJECTED'&&!window.confirm('Từ chối đơn #'+detail.orderId+' và trả số lượng đã giữ về kho?'))return
     setBusy(true)
     try {
       await api(base+'/'+detail.orderId+'/status','PATCH',{status:target})
@@ -54,12 +55,13 @@ export function Orders({staff}:{staff:boolean}) {
     {message&&<p role="status">{message}</p>}
     {detail && <section className="order-detail"><h2>Chi tiết đơn #{detail.orderId}</h2>
       <p><span className={'status-badge '+(statusColors[detail.status]||'')}>{labels[detail.status]}</span> · {detail.customer} · {detail.address}</p>
-      {detail.handler&&<p>Người xác nhận: {detail.handler}</p>}
+      {detail.handler&&<p>{detail.status==='REJECTED'?'Người từ chối':'Người xác nhận'}: {detail.handler}</p>}
       <ul>{detail.items.map(item=><li key={item.productId}>{item.name} · {item.quantity} × {currency.format(item.price)}
         <ul>{detail.serials.filter(s=>s.productId===item.productId).map(s=><li key={s.serial}>{s.serial}{s.warrantyUntil&&' · Bảo hành đến '+s.warrantyUntil}</li>)}</ul>
       </li>)}</ul>
       <p>Tổng tiền: {currency.format(detail.total)}</p>
       {target&&<button disabled={busy} onClick={()=>void change(target)}>{actions[target]}</button>}
+      {staff&&detail.status==='PENDING'&&<button disabled={busy} onClick={()=>void change('REJECTED')}>Từ chối đơn</button>}
     </section>}
     {loading?<p>Đang tải danh sách…</p>:rows.length===0?<p>Chưa có đơn ở trạng thái này.</p>:
       <ul className="order-list">{rows.map(row=><li key={row.orderId}><button disabled={busy} onClick={()=>{select(row.orderId);setMessage('')}}>Đơn #{row.orderId}</button>

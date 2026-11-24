@@ -12,7 +12,7 @@ import static org.springframework.http.HttpStatus.*;
 
 @Service
 public class OrderWorkflow {
-    private static final Set<String> STATES = Set.of("PENDING","CONFIRMED","SHIPPING","COMPLETED","CANCELLED");
+    private static final Set<String> STATES = Set.of("PENDING","CONFIRMED","SHIPPING","COMPLETED","CANCELLED","REJECTED");
     private static final Map<String,String> NEXT = Map.of("PENDING","CONFIRMED","CONFIRMED","SHIPPING","SHIPPING","COMPLETED");
     private static final String SUMMARY = """
             SELECT d.ma_don AS orderId,d.ngay_gio AS placedAt,d.trang_thai AS status,
@@ -67,7 +67,8 @@ public class OrderWorkflow {
         authorize(actor,staff,true);
         String current=db.queryForList("SELECT trang_thai FROM DON WHERE ma_don=? AND (? OR ma_nguoi_dat=?) FOR UPDATE",
                 String.class,id,staff,actor).stream().findFirst().orElseThrow(OrderWorkflow::missing);
-        boolean allowed = staff ? target!=null && target.equals(NEXT.get(current))
+        boolean rejectPending = "REJECTED".equals(target) && "PENDING".equals(current);
+        boolean allowed = staff ? rejectPending || (target!=null && target.equals(NEXT.get(current)))
                 : "CANCELLED".equals(target) && Set.of("PENDING","CONFIRMED").contains(current);
         if (!allowed) throw new ResponseStatusException(CONFLICT,"Trạng thái đơn hiện tại không cho phép thao tác này.");
 
@@ -78,6 +79,7 @@ public class OrderWorkflow {
             db.queryForObject("SELECT ma_sp FROM SAN_PHAM WHERE ma_sp=? FOR UPDATE",Integer.class,line.product());
 
         switch (target) {
+            case "REJECTED" -> db.update("UPDATE DON SET ma_nguoi_xu_ly=? WHERE ma_don=?",actor,id);
             case "CONFIRMED" -> {
                 for (Line line:lines) assign(id,line.product(),line.quantity());
                 db.update("UPDATE DON SET ma_nguoi_xu_ly=? WHERE ma_don=?",actor,id);

@@ -52,7 +52,7 @@ CREATE TABLE CHI_TIET_PNK (
 ) ENGINE=InnoDB;
 CREATE TABLE DON (
  ma_don INT AUTO_INCREMENT PRIMARY KEY, ngay_gio DATETIME NOT NULL, dia_chi_giao_hang VARCHAR(255) NOT NULL,
- trang_thai VARCHAR(20) NOT NULL CHECK(trang_thai IN ('PENDING','CONFIRMED','SHIPPING','COMPLETED','CANCELLED')),
+ trang_thai VARCHAR(20) NOT NULL CONSTRAINT chk_don_trang_thai CHECK(trang_thai IN ('PENDING','CONFIRMED','SHIPPING','COMPLETED','CANCELLED','REJECTED')),
  ma_nguoi_dat INT NOT NULL, ma_nguoi_xu_ly INT,
  FOREIGN KEY(ma_nguoi_dat) REFERENCES TAIKHOAN(ma_tk), FOREIGN KEY(ma_nguoi_xu_ly) REFERENCES TAIKHOAN(ma_tk)
 ) ENGINE=InnoDB;
@@ -77,7 +77,7 @@ CREATE TABLE DANH_GIA (
 
 START TRANSACTION;
 INSERT INTO TAIKHOAN(ma_tk,ho_ten,email,so_dien_thoai,mat_khau,dia_chi,loai_tai_khoan) VALUES
-(1,'Trần Minh','quantrivien@gmail.com','0900000001','$2a$10$96SoE6I1M9f3.HoKEhfj4eIk6ETXB.YQjy9ZwMsfMBUTEE6LuYF2m',NULL,'ADMIN'),
+(1,'Nguyễn Tâm','admin@gmail.com','0900000001','$2a$10$96SoE6I1M9f3.HoKEhfj4eIk6ETXB.YQjy9ZwMsfMBUTEE6LuYF2m',NULL,'ADMIN'),
 (2,'Lê Hà','nhanvien@gmail.com','0900000002','$2a$10$bb7u6OSiSyEjZDM/vTU7vOs3W0w0/aoRHtctv1freOya0wMWpwJ3e',NULL,'STAFF'),
 (3,'Đại lý An Gia','daily@gmail.com','0900000003','$2a$10$YLddgnVpwULJoazPq/Un8eD3iJaugreNpQKr7Mv57177VAJLDQdpm',NULL,'DEALER'),
 (4,'Nguyễn An','khachhang1@gmail.com','0900000004','$2a$10$14zsOVY7G3W3/wVSHRP5qOTeeHDdPgJiAj.LM3kG63855agbVOq7a','12 Nguyễn Trãi','CUSTOMER'),
